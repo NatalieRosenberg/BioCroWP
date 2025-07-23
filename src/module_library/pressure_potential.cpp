@@ -158,13 +158,13 @@ void pressure_potential::do_operation() const
 
     // Root water potential update
     // Calculate water flow at this time step using the initial values for total potential
-    double F_root_stem;
-    double F_root_stem_temp = (root_total_potential - stem_total_potential)/R_root_stem;
-    if (root_water_content + F_rwu - F_root_stem_temp < 0){
-        F_root_stem = 0;
-    } else {
-        F_root_stem = F_root_stem_temp;
-    }
+    // double F_root_stem;
+    double F_root_stem = (root_total_potential - stem_total_potential)/R_root_stem;
+    // if (root_water_content + F_rwu - F_root_stem_temp < 0){
+    //     F_root_stem = 0;
+    // } else {
+    //     F_root_stem = F_root_stem_temp;
+    // }
 
     // change in root water content = total root water uptake - total flow from root system to stem
     double root_water_content_temp = root_water_content + F_rwu - F_root_stem;
@@ -196,8 +196,8 @@ void pressure_potential::do_operation() const
     }
 
     // Stem water potential update
-    double F_stem_leaf;
-    double F_stem_leaf_temp = (stem_total_potential - leaf_total_potential)/R_stem_leaf;
+    // double F_stem_leaf;
+    double F_stem_leaf = (stem_total_potential - leaf_total_potential)/R_stem_leaf;
     // if (stem_water_content + F_root_stem - F_stem_leaf < 0){
     //     F_stem_leaf = 0;
     // } else {
