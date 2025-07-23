@@ -17,21 +17,21 @@ pressure_potential::pressure_potential(
           uptake_layer_5{get_input(input_quantities, "uptake_layer_5")},
           uptake_layer_6{get_input(input_quantities, "uptake_layer_6")},
 
-          root_pressure_potential_ip{get_input(input_quantities, "root_pressure_potential")}, // initial values to be updated, MPa
-          stem_pressure_potential_ip{get_input(input_quantities, "stem_pressure_potential")},
-          leaf_pressure_potential_ip{get_input(input_quantities, "leaf_pressure_potential")},
+          root_total_potential{get_input(input_quantities, "root_total_potential")}, // MPa
+          stem_total_potential{get_input(input_quantities, "stem_total_potential")},
+          leaf_total_potential{get_input(input_quantities, "leaf_total_potential")},
 
-          root_osmotic_potential{get_input(input_quantities, "root_osmotic_potential")},
-          stem_osmotic_potential{get_input(input_quantities, "stem_osmotic_potential")},
-          leaf_osmotic_potential{get_input(input_quantities, "leaf_osmotic_potential")},
+          root_pressure_potential{get_input(input_quantities, "root_pressure_potential")}, // MPa
+          stem_pressure_potential{get_input(input_quantities, "stem_pressure_potential")},
+          leaf_pressure_potential{get_input(input_quantities, "leaf_pressure_potential")},
 
-          root_water_content_ip{get_input(input_quantities, "root_water_content")}, // g
-          stem_water_content_ip{get_input(input_quantities, "stem_water_content")},
-          leaf_water_content_ip{get_input(input_quantities, "leaf_water_content")},
+          root_water_content{get_input(input_quantities, "root_water_content")}, // g
+          stem_water_content{get_input(input_quantities, "stem_water_content")},
+          leaf_water_content{get_input(input_quantities, "leaf_water_content")},
 
-          root_volume_ip{get_input(input_quantities, "root_volume")}, // Initial volume of organ, m3
-          stem_volume_ip{get_input(input_quantities, "stem_volume")},
-          leaf_volume_ip{get_input(input_quantities, "leaf_volume")},
+          root_volume{get_input(input_quantities, "root_volume")}, // Initial volume of organ, m3
+          stem_volume{get_input(input_quantities, "stem_volume")},
+          leaf_volume{get_input(input_quantities, "leaf_volume")},
 
           ext_root_x{get_input(input_quantities, "ext_root_x")},
           ext_root_z{get_input(input_quantities, "ext_root_z")},
@@ -84,21 +84,21 @@ string_vector pressure_potential::get_inputs()
         "uptake_layer_5",
         "uptake_layer_6",
 
-        "root_pressure_potential_ip",         // MPa
-        "stem_pressure_potential_ip",
-        "leaf_pressure_potential_ip",
+        "root_total_potential",         // MPa
+        "stem_total_potential",
+        "leaf_total_potential",
 
-        "root_osmotic_potential",             // MPa
-        "stem_osmotic_potential",
-        "leaf_osmotic_potential",
+        "root_pressure_potential",         // MPa
+        "stem_pressure_potential",
+        "leaf_pressure_potential",
 
-        "root_water_content_ip",              // g
-        "stem_water_content_ip",
-        "leaf_water_content_ip",
+        "root_water_content",              // g
+        "stem_water_content",
+        "leaf_water_content",
 
-        "root_volume_ip",                     // m3
-        "stem_volume_ip", 
-        "leaf_volume_ip",
+        "root_volume",                     // m3
+        "stem_volume", 
+        "leaf_volume",
 
         "ext_root_x", // MPa-1 hr-1
         "ext_root_z",
@@ -131,17 +131,17 @@ string_vector pressure_potential::get_inputs()
 string_vector pressure_potential::get_outputs()
 {
     return {
-        "root_pressure_potential_op",  // MPa
-        "root_water_content_op",       // g
-        "root_volume_op",              // m3
+        "root_pressure_potential",  // MPa
+        "root_water_content",       // g
+        "root_volume",              // m3
 
-        "stem_pressure_potential_op",  // MPa
-        "stem_water_content_op",       // g
-        "stem_volume_op",              // m3
+        "stem_pressure_potential",  // MPa
+        "stem_water_content",       // g
+        "stem_volume",              // m3
 
-        "leaf_pressure_potential_op",  // MPa
-        "leaf_water_content_op",       // g
-        "leaf_volume_op"               // m3
+        "leaf_pressure_potential",  // MPa
+        "leaf_water_content",       // g
+        "leaf_volume",              // m3
     };
 }
 
@@ -150,97 +150,106 @@ void pressure_potential::do_operation() const
     // convert Mg/(ha*hr) to g/(ha*hr)
     double transpiration = (canopy_transpiration_rate*1000000); // keep in terms of ha
 
-    // Extensibility (MPa-1 h-1)
-    // double ext_root_x = 0.055;
-    // double ext_root_z = 0.275;
-
-    // double ext_stem_x = 0.055;
-    // double ext_stem_z = 0.275;
-
-    // double ext_leaf_x = 0.0;
-    // double ext_leaf_y = 0.55;
-    // double ext_leaf_z = 0.55;
-
-    // Elastic modulus (MPa)
-    // double mod_root_x = 57;
-    // double mod_root_z = 57;
-
-    // double mod_stem_x = 57;
-    // double mod_stem_z = 57;
-
-    // double mod_leaf_x = 9;
-    // double mod_leaf_y = 2;
-    // double mod_leaf_z = 9;
-
-    // double wp_crit = 0.4;  // MPa
-
     // Density of water
     double pw = 998200; // g/m3
 
     // Calculate total RWU in g/(ha*hr)
-    double F_rwu = (uptake_layer_1 + uptake_layer_2 + uptake_layer_3 + uptake_layer_4 + uptake_layer_5 + uptake_layer_6)*1000000;
-
-    double root_total_potential = root_osmotic_potential + root_pressure_potential_ip;
-    double stem_total_potential = stem_osmotic_potential + stem_pressure_potential_ip;
-    double leaf_total_potential = leaf_osmotic_potential + leaf_pressure_potential_ip;
-
-    // double R_root_stem = 0.0000005; // MPa m h g-1
-    // double R_stem_leaf = 0.0000005;
+    double F_rwu = (uptake_layer_1 + uptake_layer_2 + uptake_layer_3 + uptake_layer_4 + uptake_layer_5 + uptake_layer_6);
 
     // Root water potential update
-    double F_root_stem = (root_total_potential - stem_total_potential)/R_root_stem;
+    // Calculate water flow at this time step using the initial values for total potential
+    double F_root_stem;
+    double F_root_stem_temp = (root_total_potential - stem_total_potential)/R_root_stem;
+    if (root_water_content + F_rwu - F_root_stem_temp < 0){
+        F_root_stem = 0;
+    } else {
+        F_root_stem = F_root_stem_temp;
+    }
 
-    double dW_root = F_rwu - F_root_stem;
-    double root_water_content = root_water_content + dW_root;
+    // change in root water content = total root water uptake - total flow from root system to stem
+    double root_water_content_temp = root_water_content + F_rwu - F_root_stem;
+
+    // make sure organ water content does not go below 0 if uptake < flow to stem
+    double root_water_content_new;
+    if (root_water_content_temp < 0) {
+        root_water_content_new = 0;
+    } else {
+        root_water_content_new = root_water_content_temp;
+    }
+
+    double dW_root = root_water_content_new - root_water_content;
 
     double dV_root = dW_root/pw;
-    double root_volume = root_water_content/pw;
+    double root_volume_new = root_water_content_new/pw;
 
     double root_dPP;
     double stem_dPP;
     double leaf_dPP;
 
-    if (root_pressure_potential_ip <= wp_crit) {
-        double root_dPP = ((dW_root/root_volume - (ext_root_z + 2*ext_root_x)*(root_pressure_potential_ip - wp_crit))
+    // Change in pressure potential accounts for both elastic and plastic organ growth
+    if (root_pressure_potential > wp_crit) {
+        double root_dPP = ((dW_root/(pw*root_volume_new) - (ext_root_z + 2*ext_root_x)*(root_pressure_potential - wp_crit))
                     *((mod_root_x*mod_root_z)/(2*mod_root_z + mod_root_x)));
     } else {
-    double root_dPP = ((dW_root/root_volume)
-                *((mod_root_x*mod_root_z)/(2*mod_root_z + mod_root_x)));
-    };
+        double root_dPP = ((dW_root/(pw*root_volume_new))
+                    *((mod_root_x*mod_root_z)/(2*mod_root_z + mod_root_x)));
+    }
 
     // Stem water potential update
+    double F_stem_leaf;
+    double F_stem_leaf_temp = (stem_total_potential - leaf_total_potential)/R_stem_leaf;
+    // if (stem_water_content + F_root_stem - F_stem_leaf < 0){
+    //     F_stem_leaf = 0;
+    // } else {
+    //     F_stem_leaf = F_stem_leaf_temp;
+    // }
 
-    double F_stem_leaf = (stem_total_potential - leaf_total_potential)/R_stem_leaf;
+    double stem_water_content_temp = stem_water_content + F_root_stem - F_stem_leaf;
 
-    double dW_stem = F_root_stem - F_stem_leaf;
-    double stem_water_content = stem_water_content + dW_stem;
+    // make sure organ water content does not go below 0 if uptake < flow to stem
+    double stem_water_content_new;
+    if (stem_water_content_temp < 0) {
+        stem_water_content_new = 0;
+    } else {
+        stem_water_content_new = stem_water_content_temp;
+    }
+
+    double dW_stem = stem_water_content_new - stem_water_content;
 
     double dV_stem = dW_stem/pw;
-    double stem_volume = stem_water_content/pw;
+    double stem_volume_new = stem_water_content_new/pw;
 
-    if(stem_pressure_potential_ip <= wp_crit) {
-        double stem_dPP = ((dW_stem/stem_volume - (ext_stem_z + 2*ext_stem_x)*(stem_pressure_potential_ip - wp_crit))
+    if(stem_pressure_potential > wp_crit) {
+        double stem_dPP = ((dW_stem/(pw*stem_volume_new) - (ext_stem_z + 2*ext_stem_x)*(stem_pressure_potential - wp_crit))
                     *((mod_stem_x*mod_stem_z)/(2*mod_stem_z + mod_stem_x)));
     } else {
-        double stem_dPP = ((dW_stem/stem_volume)
+        double stem_dPP = ((dW_stem/(pw*stem_volume_new))
                     *((mod_stem_x*mod_stem_z)/(2*mod_stem_z + mod_stem_x)));
-    };
+    }
 
     // Leaf water potential update
+    double leaf_water_content_new = leaf_water_content + F_stem_leaf - transpiration;
 
-    double dW_leaf = F_stem_leaf - transpiration;
-    double leaf_water_content = leaf_water_content + dW_leaf;
+    // make sure organ water content does not go below 0 if uptake < flow to stem
+    // double leaf_water_content_new;
+    // if (leaf_water_content_temp < 0) {
+    //     leaf_water_content_new = 0;
+    // } else {
+    //     leaf_water_content_new = leaf_water_content_temp;
+    // }
+
+    double dW_leaf = leaf_water_content_new - leaf_water_content;
 
     double dV_leaf = dW_leaf/pw;
-    double leaf_volume = leaf_water_content/pw;
+    double leaf_volume_new = leaf_water_content_new/pw;
 
-    if (leaf_pressure_potential_ip <= wp_crit) {
-        double leaf_dPP = ((dW_leaf/leaf_volume - (ext_leaf_z + ext_leaf_x + ext_leaf_y)*(leaf_pressure_potential_ip - wp_crit))
+    if (leaf_pressure_potential > wp_crit) {
+        double leaf_dPP = ((dW_leaf/(pw*leaf_volume_new) - (ext_leaf_z + ext_leaf_x + ext_leaf_y)*(leaf_pressure_potential - wp_crit))
                     *((mod_leaf_x*mod_leaf_z*mod_leaf_y)/(mod_leaf_x*mod_leaf_z + mod_leaf_z*mod_leaf_y + mod_leaf_x*mod_leaf_y)));
     } else {
-    double leaf_dPP = ((dW_leaf/leaf_volume)
-                *((mod_leaf_x*mod_leaf_z*mod_leaf_y)/(mod_leaf_x*mod_leaf_z + mod_leaf_z*mod_leaf_y + mod_leaf_x*mod_leaf_y)));
-    };
+        double leaf_dPP = ((dW_leaf/(pw*leaf_volume_new))
+                    *((mod_leaf_x*mod_leaf_z*mod_leaf_y)/(mod_leaf_x*mod_leaf_z + mod_leaf_z*mod_leaf_y + mod_leaf_x*mod_leaf_y)));
+    }
 
     // Update the output quantity list
     update(root_pressure_potential_op, root_dPP);

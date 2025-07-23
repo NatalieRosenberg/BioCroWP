@@ -6,11 +6,13 @@
 #include "soil_temperature.h"
 #include "osmotic_potential.h"
 #include "pressure_potential.h"
+#include "total_potential.h"
 
 creator_map BioCroWP::module_library::library_entries =
 {
     {"example_module", &create_mc<example_module>},
     {"soil_temperature", &create_mc<soil_temperature>},
     {"osmotic_potential", &create_mc<osmotic_potential>},
-    {"pressure_potential", &create_mc<pressure_potential>}
+    {"pressure_potential", &create_mc<pressure_potential>},
+    {"total_potential", &create_mc<total_potential>}
 };

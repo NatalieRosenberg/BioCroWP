@@ -25,21 +25,21 @@ class pressure_potential : public differential_module
     double const& uptake_layer_5;
     double const& uptake_layer_6;
 
-    double const& root_pressure_potential_ip;
-    double const& stem_pressure_potential_ip;
-    double const& leaf_pressure_potential_ip;
+    double const& root_total_potential;
+    double const& stem_total_potential;
+    double const& leaf_total_potential;
 
-    double const& root_osmotic_potential;
-    double const& stem_osmotic_potential;
-    double const& leaf_osmotic_potential;
+    double const& root_pressure_potential;
+    double const& stem_pressure_potential;
+    double const& leaf_pressure_potential;
 
-    double const& root_water_content_ip;
-    double const& stem_water_content_ip;
-    double const& leaf_water_content_ip;
+    double const& root_water_content;
+    double const& stem_water_content;
+    double const& leaf_water_content;
 
-    double const& root_volume_ip;
-    double const& stem_volume_ip;
-    double const& leaf_volume_ip;
+    double const& root_volume;
+    double const& stem_volume;
+    double const& leaf_volume;
 
     double const& ext_root_x;
     double const& ext_root_z;

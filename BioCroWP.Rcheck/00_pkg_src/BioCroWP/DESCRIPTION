@@ -1,0 +1,19 @@
+Package: BioCroWP
+Version: 1.0.0
+Title: YOUR TITLE HERE
+Description: YOUR DESCRIPTION HERE.
+Authors@R: c(
+    person('Example', 'McAuthor', role = c('cre', 'aut'),
+          email = 'example@illinois.edu')
+    )
+Depends: R (>= 3.5.0)
+Imports: stats
+Suggests: BioCro (>= 3.0.0), testthat, knitr, lattice
+VignetteBuilder: knitr
+SystemRequirements: C++11, GNU make
+License: MIT + file LICENSE
+ByteCompile: TRUE
+NeedsCompilation: yes
+Packaged: 2025-06-20 15:44:33 UTC; natal
+Author: Example McAuthor [cre, aut]
+Maintainer: Example McAuthor <example@illinois.edu>

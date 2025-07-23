@@ -1,30 +1,53 @@
-setwd('C:/Users/natal/masters/BioCroWP')
-
 library(BioCro)
 library(BioCroWP)
+library(BioCroWater)
 
 weatherData <- soybean_weather$'2002'
 
-
-direct_modules_water_potential = list("BioCroWP:soil_temperature", "BioCroWP:osmotic_potential")
+direct_modules_water_potential = list("BioCroWP:soil_temperature", "BioCroWP:osmotic_potential",
+                                      "BioCroWater:soil_type_selector",
+                                      "BioCroWater:multilayer_soil_profile_avg", "BioCroWater:soil_water_uptake")
 direct_modules_new = soybean$direct_modules
-direct_modules = c(direct_modules_new,direct_modules_water_potential) # insert BioCroWP
+direct_modules = c(direct_modules_new,direct_modules_water_potential)
 
 differential_modules_water_potential = list("BioCroWP:pressure_potential")
 differential_modules_new = soybean$differential_modules
-differential_modules_new = c(differential_modules_new,
-                             differential_modules_water_potential)
+old_soil_profile_index = which(differential_modules_new=="BioCro:two_layer_soil_profile")
+differential_modules_new = differential_modules_new[-old_soil_profile_index] #remove soil_profile
+differential_modules = c(differential_modules_new[1:(old_soil_profile_index-1)],
+                          differential_modules_water_potential,
+                          differential_modules_new[old_soil_profile_index:length(differential_modules_new)])
 
 init_values =   within(soybean$initial_values,{
   root_volume = 10e-7
   stem_volume = 7.869e-7
   leaf_volume = 2.852e-5
-  root_pressure_potential = -0.05
+  root_volume_op = 10e-7
+  stem_volume_op = 7.869e-7
+  leaf_volume_op = 2.852e-5
+  root_pressure_potential = -0.05  # For initial water flow calculation
   stem_pressure_potential = -0.4
   leaf_pressure_potential = -0.6
+  root_osmotic_potential = -0.01   # Double check these
+  stem_osmotic_potential = -0.01
+  leaf_osmotic_potential = -0.01
+  root_pressure_potential_op = -0.05 # Initial value to be updated
+  stem_pressure_potential_op = -0.4
+  leaf_pressure_potential_op = -0.6
+  leaf_temperature = 298.15
+  soil_temperature_avg = 298.15
+  soil_temperature_1 = 298.15
+  soil_temperature_2 = 298.15
+  soil_temperature_3 = 298.15
+  soil_temperature_4 = 298.15
+  soil_temperature_5 = 298.15
+  soil_temperature_6 = 298.15
   root_water_content = 0.0878416
   stem_water_content = 0.69122555
   leaf_water_content = 0.250524243
+  root_water_content_op = 0.0878416
+  stem_water_content_op = 0.69122555
+  leaf_water_content_op = 0.250524243
   soil_water_content_1 = soybean$initial_values$soil_water_content  #0-5cm
   soil_water_content_2 = soybean$initial_values$soil_water_content  #5-15cm
   soil_water_content_3 = soybean$initial_values$soil_water_content  #15-35cm
@@ -34,6 +57,7 @@ init_values =   within(soybean$initial_values,{
   sumes1               = 0.125
   sumes2               = 0
   time_factor = 0
+  soil_water_content = 0.32
 })
 init_values$soil_water_content=NULL
 
@@ -81,10 +105,10 @@ parameters =   within(soybean$parameters, {
   elevation                   = 219
   bare_soil_albedo            = 0.15
   max_rooting_layer = 4
-  soil_field_capacity = 0.3
-  soil_wilting_point = 0.1
-  soil_saturation_capacity = 0.7
-  soil_saturated_conductivity = 0.000005
+  #soil_field_capacity = 0.3
+  #soil_wilting_point = 0.1
+  #soil_saturation_capacity = 0.7
+  #soil_saturated_conductivity = 0.000005
 })
 parameters[c('soil_field_capacity','soil_saturated_conductivity','soil_saturation_capacity','soil_wilting_point')]=NULL
 parameters[c('kShell','net_assimilation_rate_shell')] = NULL
@@ -94,7 +118,8 @@ result <- run_biocro(
   parameters,
   weatherData,
   direct_modules,
-  differential_modules_new
+  differential_modules
 )
 
-plot(result$time, result$pressure_potential, xlab='time',ylab='pressure potential')
+plot(result$time[0:10], result$leaf_osmotic_potential_op[0:10], xlab='time',ylab='potential (MPa)')
+

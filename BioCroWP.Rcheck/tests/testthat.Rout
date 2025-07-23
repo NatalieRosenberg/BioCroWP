@@ -1,0 +1,33 @@
+
+R version 4.3.2 (2023-10-31 ucrt) -- "Eye Holes"
+Copyright (C) 2023 The R Foundation for Statistical Computing
+Platform: x86_64-w64-mingw32/x64 (64-bit)
+
+R is free software and comes with ABSOLUTELY NO WARRANTY.
+You are welcome to redistribute it under certain conditions.
+Type 'license()' or 'licence()' for distribution details.
+
+R is a collaborative project with many contributors.
+Type 'contributors()' for more information and
+'citation()' on how to cite R or R packages in publications.
+
+Type 'demo()' for some demos, 'help()' for on-line help, or
+'help.start()' for an HTML browser interface to help.
+Type 'q()' to quit R.
+
+> # Load the BioCro framework and the testing package
+> library(testthat)
+Warning message:
+package 'testthat' was built under R version 4.3.3 
+> library(BioCro)
+Warning message:
+package 'BioCro' was built under R version 4.3.3 
+> 
+> # Load this package and test it
+> library(BioCroWP)
+> test_check('BioCroWP')
+[ FAIL 0 | WARN 0 | SKIP 0 | PASS 1 ]
+> 
+> proc.time()
+   user  system elapsed 
+   0.25    0.14    0.76 

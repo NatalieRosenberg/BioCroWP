@@ -23,14 +23,21 @@ class soil_temperature : public direct_module
           soil_depth_5{get_input(input_quantities, "soil_depth_5")},
           soil_depth_6{get_input(input_quantities, "soil_depth_6")},
 
-          soil_bulk_density_1{get_input(input_quantities, "soil_bulk_density_1")}, // Mg/m3
-          soil_bulk_density_2{get_input(input_quantities, "soil_bulk_density_2")},
-          soil_bulk_density_3{get_input(input_quantities, "soil_bulk_density_3")},
-          soil_bulk_density_4{get_input(input_quantities, "soil_bulk_density_4")},
-          soil_bulk_density_5{get_input(input_quantities, "soil_bulk_density_5")},
-          soil_bulk_density_6{get_input(input_quantities, "soil_bulk_density_6")},
+          soil_saturation_capacity_1{get_input(input_quantities, "soil_saturation_capacity_1")}, // Mg/m3
+          soil_saturation_capacity_2{get_input(input_quantities, "soil_saturation_capacity_2")},
+          soil_saturation_capacity_3{get_input(input_quantities, "soil_saturation_capacity_3")},
+          soil_saturation_capacity_4{get_input(input_quantities, "soil_saturation_capacity_4")},
+          soil_saturation_capacity_5{get_input(input_quantities, "soil_saturation_capacity_5")},
+          soil_saturation_capacity_6{get_input(input_quantities, "soil_saturation_capacity_6")},
 
-          soil_water_content{get_input(input_quantities, "soil_water_content")}, // volumetric swc for entire profile
+          soil_water_content_1{get_input(input_quantities, "soil_water_content_1")}, // volumetric swc
+          soil_water_content_2{get_input(input_quantities, "soil_water_content_2")},
+          soil_water_content_3{get_input(input_quantities, "soil_water_content_3")},
+          soil_water_content_4{get_input(input_quantities, "soil_water_content_4")},
+          soil_water_content_5{get_input(input_quantities, "soil_water_content_5")},
+          soil_water_content_6{get_input(input_quantities, "soil_water_content_6")},
+
+          max_rooting_layer{get_input(input_quantities, "max_rooting_layer")},
 
           minimum_temp_day{get_input(input_quantities, "minimum_temp_day")}, // degrees C, daily air temperature
           maximum_temp_day{get_input(input_quantities, "maximum_temp_day")},
@@ -42,6 +49,13 @@ class soil_temperature : public direct_module
           soil_clay_content_5{get_input(input_quantities, "soil_clay_content_5")},
           soil_clay_content_6{get_input(input_quantities, "soil_clay_content_6")},
 
+          soil_type_indicator_1{get_input(input_quantities, "soil_type_indicator_1")}, // dimensionless
+          soil_type_indicator_2{get_input(input_quantities, "soil_type_indicator_2")},
+          soil_type_indicator_3{get_input(input_quantities, "soil_type_indicator_3")},
+          soil_type_indicator_4{get_input(input_quantities, "soil_type_indicator_4")},
+          soil_type_indicator_5{get_input(input_quantities, "soil_type_indicator_5")},
+          soil_type_indicator_6{get_input(input_quantities, "soil_type_indicator_6")},
+
           hour{get_input(input_quantities, "hour")},
 
           // Get pointers to output quantities
@@ -50,7 +64,8 @@ class soil_temperature : public direct_module
           soil_temperature_3_op{get_op(output_quantities, "soil_temperature_3")},
           soil_temperature_4_op{get_op(output_quantities, "soil_temperature_4")},
           soil_temperature_5_op{get_op(output_quantities, "soil_temperature_5")},
-          soil_temperature_6_op{get_op(output_quantities, "soil_temperature_6")}
+          soil_temperature_6_op{get_op(output_quantities, "soil_temperature_6")},
+          soil_temperature_avg_op{get_op(output_quantities, "soil_temperature_avg")}
 
     {
     }
@@ -67,14 +82,21 @@ class soil_temperature : public direct_module
     double const& soil_depth_5;
     double const& soil_depth_6;
 
-    double const& soil_bulk_density_1;
-    double const& soil_bulk_density_2;
-    double const& soil_bulk_density_3;
-    double const& soil_bulk_density_4;
-    double const& soil_bulk_density_5;
-    double const& soil_bulk_density_6;
+    double const& soil_saturation_capacity_1;
+    double const& soil_saturation_capacity_2;
+    double const& soil_saturation_capacity_3;
+    double const& soil_saturation_capacity_4;
+    double const& soil_saturation_capacity_5;
+    double const& soil_saturation_capacity_6;
 
-    double const& soil_water_content;
+    double const& soil_water_content_1;
+    double const& soil_water_content_2;
+    double const& soil_water_content_3;
+    double const& soil_water_content_4;
+    double const& soil_water_content_5;
+    double const& soil_water_content_6;
+
+    double const& max_rooting_layer;
 
     double const& minimum_temp_day;
     double const& maximum_temp_day;
@@ -86,6 +108,13 @@ class soil_temperature : public direct_module
     double const& soil_clay_content_5;
     double const& soil_clay_content_6;
 
+    double const& soil_type_indicator_1;
+    double const& soil_type_indicator_2;
+    double const& soil_type_indicator_3;
+    double const& soil_type_indicator_4;
+    double const& soil_type_indicator_5;
+    double const& soil_type_indicator_6;
+
     double const& hour;
 
     // Pointers to output quantities
@@ -95,6 +124,7 @@ class soil_temperature : public direct_module
     double* soil_temperature_4_op;
     double* soil_temperature_5_op;
     double* soil_temperature_6_op;
+    double* soil_temperature_avg_op;
 
     // Main operation
     void do_operation() const;

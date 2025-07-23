@@ -1,5 +1,9 @@
 #include "soil_temperature.h"
 #include <cmath>
+#include <vector>
+
+// sinusoidal function to estimate hourly soil temperature fluctuations
+// Hillel, 1982; Marshall and Holmes, 1988; Wu and Nofziger, 1999
 
 using BioCroWP::soil_temperature;
 
@@ -13,14 +17,14 @@ string_vector soil_temperature::get_inputs()
         "soil_depth_5",
         "soil_depth_6",
 
-        "soil_bulk_density_1", // Mg/m3
-        "soil_bulk_density_2",
-        "soil_bulk_density_3",
-        "soil_bulk_density_4",
-        "soil_bulk_density_5",
-        "soil_bulk_density_6",
+        "soil_water_content_1", // volumetric swc
+        "soil_water_content_2",
+        "soil_water_content_3",
+        "soil_water_content_4",
+        "soil_water_content_5",
+        "soil_water_content_6",
 
-        "soil_water_content", // volumetric swc for entire profile
+        "max_rooting_layer",
 
         "minimum_temp_day", // degrees C
         "maximum_temp_day",
@@ -32,6 +36,20 @@ string_vector soil_temperature::get_inputs()
         "soil_clay_content_5",
         "soil_clay_content_6",
 
+        "soil_saturation_capacity_1",
+        "soil_saturation_capacity_2",
+        "soil_saturation_capacity_3",
+        "soil_saturation_capacity_4",
+        "soil_saturation_capacity_5",
+        "soil_saturation_capacity_6",
+
+        "soil_type_indicator_1",
+        "soil_type_indicator_2",
+        "soil_type_indicator_3",
+        "soil_type_indicator_4",
+        "soil_type_indicator_5",
+        "soil_type_indicator_6",
+
         "hour",
 
     };
@@ -40,92 +58,180 @@ string_vector soil_temperature::get_inputs()
 string_vector soil_temperature::get_outputs()
 {
     return {
-        "soil_temperature_1_op", // K
-        "soil_temperature_2_op",
-        "soil_temperature_3_op",
-        "soil_temperature_4_op",
-        "soil_temperature_5_op",
-        "soil_temperature_6_op"
+        "soil_temperature_1", // K
+        "soil_temperature_2",
+        "soil_temperature_3",
+        "soil_temperature_4",
+        "soil_temperature_5",
+        "soil_temperature_6",
+        "soil_temperature_avg"
     };
 }
 
 void soil_temperature::do_operation() const
 {
-    double soil_particle_density = 2650; // kg/m3
     double pi = 3.14159265358979323846;
 
-    // convert cm to m
-    double soil_depth_1 = soil_depth_1/100;
-    double soil_depth_2 = soil_depth_2/100;
-    double soil_depth_3 = soil_depth_3/100;
-    double soil_depth_4 = soil_depth_4/100;
-    double soil_depth_5 = soil_depth_5/100;
-    double soil_depth_6 = soil_depth_6/100;
+    double sd_arr[] = {
+        soil_depth_1/100,
+        soil_depth_2/100,
+        soil_depth_3/100,
+        soil_depth_4/100,
+        soil_depth_5/100,
+        soil_depth_6/100
+    };
 
-    double tot_soil_depth = soil_depth_1 + soil_depth_2 + soil_depth_3 + soil_depth_4 + soil_depth_5 + soil_depth_6;
-    double soil_bulk_density_avg = (soil_bulk_density_1 + soil_bulk_density_2 + soil_bulk_density_3 + soil_bulk_density_4 + soil_bulk_density_5 + soil_bulk_density_6)/tot_soil_depth;
-    double clay_content_avg = (soil_clay_content_1 + soil_clay_content_2 + soil_clay_content_3 + soil_clay_content_4 + soil_clay_content_5 + soil_clay_content_6)/tot_soil_depth;
+    double swc_arr[] = {
+        soil_water_content_1,
+        soil_water_content_2,
+        soil_water_content_3,
+        soil_water_content_4,
+        soil_water_content_5,
+        soil_water_content_6
+    };
 
-    // fudged by 0.5 degrees celcius because air temp is used instead of soil surface temp
-    // fudge factor was found from Moore et al. (2020)
-    double min_K = minimum_temp_day + 273.15 + 0.5;
+    double soil_sat_capacity_arr[] = {
+        soil_saturation_capacity_1,
+        soil_saturation_capacity_2,
+        soil_saturation_capacity_3,
+        soil_saturation_capacity_4,
+        soil_saturation_capacity_5,
+        soil_saturation_capacity_6
+    }; 
+
+    double clay_content_arr[] = {
+        soil_clay_content_1,
+        soil_clay_content_2,
+        soil_clay_content_3,
+        soil_clay_content_4,
+        soil_clay_content_5,
+        soil_clay_content_6
+    }; 
+
+    double soil_type_indicator_arr[] = {
+        soil_type_indicator_1,
+        soil_type_indicator_2,
+        soil_type_indicator_3,
+        soil_type_indicator_4,
+        soil_type_indicator_5,
+        soil_type_indicator_6
+    };
+
+    double tot_soil_depth = 0.0;
+    for(int l = 0; l < max_rooting_layer; l++){
+        tot_soil_depth += sd_arr[l]; // m
+    }
+
+    // Degree of saturation calculated via definitions of porosity and volumetric swc
+    std::vector<double> s_r_arr;
+    for(int l = 0; l < max_rooting_layer; l++){
+        s_r_arr.push_back(swc_arr[l]/soil_sat_capacity_arr[l]); // dimensionless
+    }
+
+    // fudged by 0.5 degrees celcius because air temp is used instead of soil surface temp (Moore et al. (2020))
+    double min_K = minimum_temp_day + 273.15 + 0.5; // K
     double max_K = maximum_temp_day + 273.15 + 0.5;
 
-    // % clay by weight = (% clay by volume * particle density of clay)/particle density of entire sample
+    // Thermal conductivity of water
+    double k_w = 51.41/24; // kJ m-1 hr-1 K-1
 
-    // standard porosity calculation
-    // Soil Sampling and Methods of Analysis Second Edition; Danielson and Sutherland (1986), page 749
-    double porosity = 1 - soil_bulk_density_avg/soil_particle_density; // dimensionless
+    // soil particle thermal conductivity from Gemant (1950)
+    std::vector<double> k_s_arr;
+    for(int l = 0; l < max_rooting_layer; l++){
+        k_s_arr.push_back((504.58 - 2.85*clay_content_arr[l])/24); // kJ m-1 hr-1 K-1
+    } 
 
-    // calculations for soil thermal conductivity and volumetric heat capacity are from Wu and Nofgizer (1988)
-    double g_a = 0.333 - 0.298*(1 - soil_water_content/porosity);
-    double k_a = 2.25; // kJ m-1 d-1 K-1
-    double k_w = 51.41; // kJ m-1 d-1 K-1
-    double k_s = 504.58 - 2.85*clay_content_avg; // kJ m-1 d-1 K-1
+    // thermal conductivity model is from Cote and Konrad (2005)
+    // saturated soil thermal conductivity
+    std::vector<double> k_sat_arr;
+    for(int l = 0; l < max_rooting_layer; l++){
+        k_sat_arr.push_back(pow(k_s_arr[l], (1 - soil_sat_capacity_arr[l]))*pow(k_w, soil_sat_capacity_arr[l])); // kJ m-1 d-1 K-1
+    }
+    
+    // dry soil thermal conductivity
+    // X = 0.75 (W/m*deg C) and n = 1.2 (dimensionless) for natural mineral soils
+    // W/(m*deg C) = (J/(m*s*deg C))
+    // 1 J/(m*s*deg C)(1 kJ/1000 J)(3600 s/1 hr)(1 deg C/ 1 deg K) = 3.6 kJ m-1 hr-1 K-1
+    std::vector<double> k_dry_arr;
+    for(int l = 0; l < max_rooting_layer; l++){
+        k_dry_arr.push_back((0.75*3.6)*pow(10, (-1.2*soil_sat_capacity_arr[l]))); // kJ m-1 hr-1 K-1
+    }
 
-    double F_a = (1/3)*(2/(1 + g_a*(k_a/k_w - 1)) + 1/(1 + (1 - 2*g_a)*(k_a/k_w -1))); // air temperature gradient, dimesionless
-    double F_s = (1/3)*(2/(1 + 0.125*(k_s/k_w - 1)) + 1/(1 + 0.75*(k_s/k_w -1))); // soil particle temperature gradient, dimensionless
+    // determining k parameter for each soil layer
+    std::vector<double> k_arr; // empty k vector
+    for (int l = 0; l < max_rooting_layer; l++){
+        if (soil_type_indicator_arr[l] == 1 || soil_type_indicator_arr[l] == 2 || soil_type_indicator_arr[l] == 3) {
+            k_arr.push_back(3.55); // medium or fine sand
+        } else {
+            k_arr.push_back(1.90); // silty or clayey soil
+    }
+    }
+    
+    // normalized thermal conductivity
+    std::vector<double> k_r_arr;
+    for (int l = 0; l < max_rooting_layer; l++){
+       k_r_arr.push_back((k_arr[l]*s_r_arr[l])/(1 + (k_arr[l] - 1)*s_r_arr[l])); // Unitless
+    } 
 
-    // this only works for unsaturated soils
-    double thermal_conductivity = ((F_s*(1 - porosity)*k_s + F_a*(porosity - soil_water_content)*k_a + soil_water_content*k_w)/
-        (F_s*(1-porosity) + F_a*(porosity - soil_water_content) + soil_water_content)); // kJ m-1 d-1 K-1
+    std::vector<double> k_tot_arr;
+    for (int l = 0; l < max_rooting_layer; l++){
+       k_tot_arr.push_back((k_sat_arr[l] - k_dry_arr[l])*k_r_arr[l] + k_dry_arr[l]);  // kJ m-1 hr-1 K-1
+    }
 
-    double heat_capacity = 2000*(1 - porosity) + 4200*soil_water_content; //kJ m-3 K-1
+    // Hillel, D. 1982. Introduction to soil physics. Academic Press, San Diego, CA.
+    std::vector<double> heat_cap_arr;
+    for (int l = 0; l < max_rooting_layer; l++){
+       heat_cap_arr.push_back(2000*(1 - soil_sat_capacity_arr[l]) + 4200*swc_arr[l]); // kJ m-3 K-1
+    }
 
     // sinusoidal function for hourly soil temperature variation
-
     double w = (pi*2)/24; // frequency (1/hr)
-    double thermal_diffusivity = thermal_conductivity/(24*heat_capacity); //(m2/hr)
-    double d = pow((2*thermal_diffusivity)/w, 0.5); // m/hr
-    double Amp = (max_K - min_K)/2; // amplitude, hr
+    std::vector<double> d_arr;
+    for (int l = 0; l < max_rooting_layer; l++){
+       d_arr.push_back(pow(((2*k_tot_arr[l])/(heat_cap_arr[l]*w)), 0.5)); // m
+    }
+
+    // amplitude at a given depth (hr)
+    std::vector<double> a_z_arr;
+    for(int l = 0; max_rooting_layer; l++){
+        a_z_arr.push_back(((max_K - min_K)/2)*exp(-sd_arr[l]/d_arr[l])); // K
+    }
 
     // average daily soil surface temp
-    double T_a = (min_K + max_K)/2;
+    double T_a = (min_K + max_K)/2; // K
 
     // lag time (hrs) calculation for each soil layer
     // the amount of time it takes for a temperature fluctuation to travel from the surface to a given depth
-    // lag time = 24hrs x (z/d)
-    double lag_time_1 = (24/(2*pi))*(soil_depth_1/d);
-    double lag_time_2 = (24/(2*pi))*(soil_depth_2/d);
-    double lag_time_3 = (24/(2*pi))*(soil_depth_3/d);
-    double lag_time_4 = (24/(2*pi))*(soil_depth_4/d);
-    double lag_time_5 = (24/(2*pi))*(soil_depth_5/d);
-    double lag_time_6 = (24/(2*pi))*(soil_depth_6/d);
-    
-    // soil temperature at each soil layer
-    // -pi/2 = phase shift to coldest hour of the day
-    // lag time = number of hours between coldest air temp and coldest soil temp
-    double soil_temperature_1 = T_a + Amp*sin(w*(hour - lag_time_1) - (soil_depth_1/d) - (pi/2));
-    double soil_temperature_2 = T_a + Amp*sin(w*(hour - lag_time_2) - (soil_depth_2/d) - (pi/2));
-    double soil_temperature_3 = T_a + Amp*sin(w*(hour - lag_time_3) - (soil_depth_3/d) - (pi/2));
-    double soil_temperature_4 = T_a + Amp*sin(w*(hour - lag_time_4) - (soil_depth_4/d) - (pi/2));
-    double soil_temperature_5 = T_a + Amp*sin(w*(hour - lag_time_5) - (soil_depth_5/d) - (pi/2));
-    double soil_temperature_6 = T_a + Amp*sin(w*(hour - lag_time_6) - (soil_depth_6/d) - (pi/2));
+    // lag time = (24hrs/2*pi) x (z/d), from Chu
+    std::vector<double> lag_time_arr;
+    for(int l = 0; max_rooting_layer; l++){
+        lag_time_arr.push_back((24/(2*pi))*(sd_arr[l]/d_arr[l])); // hr
+    }
 
-    update(soil_temperature_1_op, soil_temperature_1);
-    update(soil_temperature_2_op, soil_temperature_2);
-    update(soil_temperature_3_op, soil_temperature_3);
-    update(soil_temperature_4_op, soil_temperature_4);
-    update(soil_temperature_5_op, soil_temperature_5);
-    update(soil_temperature_6_op, soil_temperature_6);
+    // phase constant aligns the temperature minimum to the actual observed minimum
+    std::vector<double> phase_arr;
+    for(int l = 0; max_rooting_layer; l++){
+        phase_arr.push_back((pi/2) + w*lag_time_arr[l]); // dimensionless
+    }
+
+    // soil temperature at each soil layer
+    std::vector<double> soil_temperature_arr;
+    for(int l = 0; max_rooting_layer; l++){
+        soil_temperature_arr.push_back(T_a + a_z_arr[l]*sin(w*hour - (sd_arr[l]/d_arr[l]) - phase_arr[l]));
+    }
+
+    // averaging soil temp
+    double temp_tot = 0.0;
+    for(int l = 0; max_rooting_layer; l++){
+        temp_tot += (soil_temperature_arr[l]*sd_arr[l]); // K*m
+    }
+    double temp_avg = temp_tot/tot_soil_depth; // K
+
+    // update(soil_temperature_1_op, soil_temperature_arr[1]);
+    // update(soil_temperature_2_op, soil_temperature_arr[2]);
+    // update(soil_temperature_3_op, soil_temperature_arr[3]);
+    // update(soil_temperature_4_op, soil_temperature_arr[4]);
+    // update(soil_temperature_5_op, soil_temperature_arr[5]);
+    // update(soil_temperature_6_op, soil_temperature_arr[6]);
+    update(soil_temperature_avg_op, temp_avg);
 }

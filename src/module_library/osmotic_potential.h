@@ -15,8 +15,8 @@ class osmotic_potential : public direct_module
         : direct_module(),
 
           // Get references to input quantities
-          canopy_temperature{get_input(input_quantities, "canopy_temperature")},
-          soil_temperature{get_input(input_quantities, "soil_temperature")},
+          leaf_temperature{get_input(input_quantities, "leaf_temperature")},
+          soil_temperature_avg{get_input(input_quantities, "soil_temperature_avg")},
 
         //   stem_soluble_sugar{get_input(input_qunatities, "stem_soluble_sugar")}, // waiting on partioning fraction
         //   leaf_soluble_sugar{get_input(input_qunatities, "leaf_soluble_sugar")},
@@ -39,8 +39,8 @@ class osmotic_potential : public direct_module
 
    private:
     // References to input quantities
-    double const& canopy_temperature;
-    double const& soil_temperature;
+    double const& leaf_temperature;
+    double const& soil_temperature_avg;
 
     double const& root_volume;
     double const& stem_volume;
