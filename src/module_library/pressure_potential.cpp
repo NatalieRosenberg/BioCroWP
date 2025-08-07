@@ -151,31 +151,31 @@ void pressure_potential::do_operation() const
     double transpiration = (canopy_transpiration_rate*1000000); // keep in terms of ha
 
     // Density of water
-    double pw = 998200; // g/m3
+    double pw = 998200/10000; // g/m*ha
 
     // Calculate total RWU in g/(ha*hr)
     double F_rwu = (uptake_layer_1 + uptake_layer_2 + uptake_layer_3 + uptake_layer_4 + uptake_layer_5 + uptake_layer_6);
 
     // Root water potential update
     // Calculate water flow at this time step using the initial values for total potential
-    // double F_root_stem;
-    double F_root_stem = (root_total_potential - stem_total_potential)/R_root_stem;
-    // if (root_water_content + F_rwu - F_root_stem_temp < 0){
-    //     F_root_stem = 0;
-    // } else {
-    //     F_root_stem = F_root_stem_temp;
-    // }
+    double F_root_stem;
+    double F_root_stem_temp = (root_total_potential - stem_total_potential)/R_root_stem;
+    if (F_rwu - F_root_stem_temp < 0.0){
+        F_root_stem = 0.0;
+    } else {
+        F_root_stem = F_root_stem_temp;
+    }
 
     // change in root water content = total root water uptake - total flow from root system to stem
-    double root_water_content_temp = root_water_content + F_rwu - F_root_stem;
+    double root_water_content_new = root_water_content + F_rwu - F_root_stem;
 
     // make sure organ water content does not go below 0 if uptake < flow to stem
-    double root_water_content_new;
-    if (root_water_content_temp < 0) {
-        root_water_content_new = 0;
-    } else {
-        root_water_content_new = root_water_content_temp;
-    }
+    // double root_water_content_new;
+    // if (root_water_content_temp < 0) {
+    //     root_water_content_new = 0;
+    // } else {
+    //     root_water_content_new = root_water_content_temp;
+    // }
 
     double dW_root = root_water_content_new - root_water_content;
 
@@ -196,23 +196,23 @@ void pressure_potential::do_operation() const
     }
 
     // Stem water potential update
-    // double F_stem_leaf;
-    double F_stem_leaf = (stem_total_potential - leaf_total_potential)/R_stem_leaf;
-    // if (stem_water_content + F_root_stem - F_stem_leaf < 0){
-    //     F_stem_leaf = 0;
-    // } else {
-    //     F_stem_leaf = F_stem_leaf_temp;
-    // }
+    double F_stem_leaf;
+    double F_stem_leaf_temp = (stem_total_potential - leaf_total_potential)/R_stem_leaf;
+    if (F_root_stem - F_stem_leaf < 0.0){
+        F_stem_leaf = 0.0;
+    } else {
+        F_stem_leaf = F_stem_leaf_temp;
+    }
 
-    double stem_water_content_temp = stem_water_content + F_root_stem - F_stem_leaf;
+    double stem_water_content_new = stem_water_content + F_root_stem - F_stem_leaf;
 
     // make sure organ water content does not go below 0 if uptake < flow to stem
-    double stem_water_content_new;
-    if (stem_water_content_temp < 0) {
-        stem_water_content_new = 0;
-    } else {
-        stem_water_content_new = stem_water_content_temp;
-    }
+    // double stem_water_content_new;
+    // if (stem_water_content_temp < 0) {
+    //     stem_water_content_new = 0;
+    // } else {
+    //     stem_water_content_new = stem_water_content_temp;
+    // }
 
     double dW_stem = stem_water_content_new - stem_water_content;
 
@@ -228,7 +228,15 @@ void pressure_potential::do_operation() const
     }
 
     // Leaf water potential update
-    double leaf_water_content_new = leaf_water_content + F_stem_leaf - transpiration;
+    double F_transpiration;
+    // double F_stem_leaf_temp = (stem_total_potential - leaf_total_potential)/R_stem_leaf;
+    if (F_stem_leaf - transpiration < 0.0){
+        F_transpiration = 0.0;
+    } else {
+        F_transpiration = transpiration;
+    }
+
+    double leaf_water_content_new = leaf_water_content + F_stem_leaf - F_transpiration;
 
     // make sure organ water content does not go below 0 if uptake < flow to stem
     // double leaf_water_content_new;

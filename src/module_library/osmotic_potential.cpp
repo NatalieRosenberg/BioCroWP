@@ -35,7 +35,7 @@ void osmotic_potential::do_operation() const
     double m_sucrose_stem = 0.1 * stem_volume; // Total sugar mass in plant organ (g)
     double m_sucrose_leaf = 0.1 * leaf_volume; // Current eqn is from Coussement et al. (2018)
 
-    double root_storage_water = storage_water_frac * root_volume; //m3, needs to be fixed
+    double root_storage_water = storage_water_frac * root_volume; // m3
     double stem_storage_water = storage_water_frac * stem_volume;
     double leaf_storage_water = storage_water_frac * leaf_volume;
 
