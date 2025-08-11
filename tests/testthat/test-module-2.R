@@ -9,7 +9,8 @@ direct_modules_water_potential = list("BioCroWater:soil_type_selector", "BioCroW
                                  "BioCroWater:soil_water_downflow", "BioCroWater:soil_water_tiledrain", 
                                  "BioCroWater:soil_water_upflow","BioCroWater:soil_water_uptake",
                                  "BioCroWater:multilayer_soil_profile_avg",
-                                 "BioCroWP:osmotic_potential")
+                                 "BioCroWP:soil_temperature", "BioCroWP:osmotic_potential",
+                                 "BioCroWP:total_potential")
 direct_modules_new = soybean$direct_modules
 old_soil_evapo_index = which(direct_modules_new=="BioCro:soil_evaporation")
 direct_modules_new = direct_modules_new[-old_soil_evapo_index] #remove soil evaporation
@@ -47,11 +48,11 @@ init_values =   within(soybean$initial_values,{
   root_pressure_potential = -0.04  # Initial value to be updated
   stem_pressure_potential = -0.3
   leaf_pressure_potential = -0.5
-  root_total_potential = -0.05  # For initial water flow calculation
-  stem_total_potential = -0.4
-  leaf_total_potential = -0.6
+  #root_total_potential = -0.05  # For initial water flow calculation
+  #stem_total_potential = -0.4
+  #leaf_total_potential = -0.6
   leaf_temperature = 298.15
-  soil_temperature_avg = 298.15
+  #soil_temperature_avg = 298.15
   kd = 1 # Not sure what this should be
 })
 init_values$soil_water_content=NULL
