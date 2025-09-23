@@ -19,7 +19,7 @@ string_vector osmotic_potential::get_inputs()
 string_vector osmotic_potential::get_outputs()
 {
     return {
-        "root_osmotic_potential",         // KPa
+        "root_osmotic_potential",         // MPa
         "stem_osmotic_potential",
         "leaf_osmotic_potential"
     };

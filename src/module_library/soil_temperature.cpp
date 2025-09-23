@@ -10,7 +10,7 @@ using BioCroWP::soil_temperature;
 string_vector soil_temperature::get_inputs()
 {
     return {
-        "soil_depth_1", // m
+        "soil_depth_1", // cm
         "soil_depth_2",
         "soil_depth_3",
         "soil_depth_4",
@@ -79,7 +79,7 @@ void soil_temperature::do_operation() const
         soil_depth_4/100,
         soil_depth_5/100,
         soil_depth_6/100
-    };
+    }; // m
 
     double swc_arr[] = {
         soil_water_content_1,
@@ -193,7 +193,7 @@ void soil_temperature::do_operation() const
 
     // amplitude at a given depth (hr)
     std::vector<double> a_z_arr;
-    for(int l = 0; max_rooting_layer; l++){
+    for(int l = 0; l < max_rooting_layer; l++){
         a_z_arr.push_back(((max_K - min_K)/2)*exp(-sd_arr[l]/d_arr[l])); // K
     }
 
@@ -204,25 +204,25 @@ void soil_temperature::do_operation() const
     // the amount of time it takes for a temperature fluctuation to travel from the surface to a given depth
     // lag time = (24hrs/2*pi) x (z/d), from Chu
     std::vector<double> lag_time_arr;
-    for(int l = 0; max_rooting_layer; l++){
+    for(int l = 0; l < max_rooting_layer; l++){
         lag_time_arr.push_back((24/(2*pi))*(sd_arr[l]/d_arr[l])); // hr
     }
 
     // phase constant aligns the temperature minimum to the actual observed minimum
     std::vector<double> phase_arr;
-    for(int l = 0; max_rooting_layer; l++){
+    for(int l = 0; l < max_rooting_layer; l++){
         phase_arr.push_back((pi/2) + w*lag_time_arr[l]); // dimensionless
     }
 
     // soil temperature at each soil layer
     std::vector<double> soil_temperature_arr;
-    for(int l = 0; max_rooting_layer; l++){
+    for(int l = 0; l < max_rooting_layer; l++){
         soil_temperature_arr.push_back(T_a + a_z_arr[l]*sin(w*hour - (sd_arr[l]/d_arr[l]) - phase_arr[l]));
     }
 
     // averaging soil temp
     double temp_tot = 0.0;
-    for(int l = 0; max_rooting_layer; l++){
+    for(int l = 0; l < max_rooting_layer; l++){
         temp_tot += (soil_temperature_arr[l]*sd_arr[l]); // K*m
     }
     double temp_avg = temp_tot/tot_soil_depth; // K

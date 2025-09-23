@@ -1,3 +1,6 @@
+#include <algorithm>
+#include <iostream>
+
 #include "../framework/module.h"                  // for direct_module and update
 #include "../framework/module_helper_functions.h" 
 #include "pressure_potential.h"
@@ -122,7 +125,7 @@ string_vector pressure_potential::get_inputs()
 
         "wp_crit", // MPa
 
-        "R_root_stem", // MPa m h g-1
+        "R_root_stem", // MPa h g-1 ha
         "R_stem_leaf",
 
     };
@@ -132,16 +135,16 @@ string_vector pressure_potential::get_outputs()
 {
     return {
         "root_pressure_potential",  // MPa
-        "root_water_content",       // g
-        "root_volume",              // m3
+        "root_water_content",       // g/ha
+        "root_volume",              // m3/ha
 
         "stem_pressure_potential",  // MPa
-        "stem_water_content",       // g
-        "stem_volume",              // m3
+        "stem_water_content",       // g/ha
+        "stem_volume",              // m3/ha
 
         "leaf_pressure_potential",  // MPa
-        "leaf_water_content",       // g
-        "leaf_volume",              // m3
+        "leaf_water_content",       // g/ha
+        "leaf_volume",              // m3/ha
     };
 }
 
@@ -151,114 +154,63 @@ void pressure_potential::do_operation() const
     double transpiration = (canopy_transpiration_rate*1000000); // keep in terms of ha
 
     // Density of water
-    double pw = 998200/10000; // g/m*ha
+    double pw = 998200; // g/m3
 
     // Calculate total RWU in g/(ha*hr)
-    double F_rwu = (uptake_layer_1 + uptake_layer_2 + uptake_layer_3 + uptake_layer_4 + uptake_layer_5 + uptake_layer_6);
+    // Negative sign because RWU is negative in the soil water model, but needs to be positive in this model
+    double F_rwu = -(uptake_layer_1 + uptake_layer_2 + uptake_layer_3 +
+         uptake_layer_4 + uptake_layer_5 + uptake_layer_6)*1000000; // g ha-1 hr-1
+
 
     // Root water potential update
-    // Calculate water flow at this time step using the initial values for total potential
-    double F_root_stem;
-    double F_root_stem_temp = (root_total_potential - stem_total_potential)/R_root_stem;
-    if (F_rwu - F_root_stem_temp < 0.0){
-        F_root_stem = 0.0;
+    // Calculate water flow at this time step using the initial values for pressure potential
+    double F_root_stem = (root_total_potential - stem_total_potential)/R_root_stem; // g ha-1 hr-1
+
+    double dW_root;
+    double dW_root_temp = F_rwu - F_root_stem; // g ha-1 hr-1
+    if (dW_root_temp < 0) {
+        dW_root = 0;
     } else {
-        F_root_stem = F_root_stem_temp;
+        dW_root = dW_root_temp;
     }
-
-    // change in root water content = total root water uptake - total flow from root system to stem
-    double root_water_content_new = root_water_content + F_rwu - F_root_stem;
-
-    // make sure organ water content does not go below 0 if uptake < flow to stem
-    // double root_water_content_new;
-    // if (root_water_content_temp < 0) {
-    //     root_water_content_new = 0;
-    // } else {
-    //     root_water_content_new = root_water_content_temp;
-    // }
-
-    double dW_root = root_water_content_new - root_water_content;
-
-    double dV_root = dW_root/pw;
-    double root_volume_new = root_water_content_new/pw;
-
-    double root_dPP;
-    double stem_dPP;
-    double leaf_dPP;
 
     // Change in pressure potential accounts for both elastic and plastic organ growth
-    if (root_pressure_potential > wp_crit) {
-        double root_dPP = ((dW_root/(pw*root_volume_new) - (ext_root_z + 2*ext_root_x)*(root_pressure_potential - wp_crit))
-                    *((mod_root_x*mod_root_z)/(2*mod_root_z + mod_root_x)));
-    } else {
-        double root_dPP = ((dW_root/(pw*root_volume_new))
-                    *((mod_root_x*mod_root_z)/(2*mod_root_z + mod_root_x)));
-    }
+    double potential_value_root = std::max(root_pressure_potential, wp_crit); // MPa
+    double root_dPP = ((dW_root/(pw*root_volume) - (ext_root_z + 2*ext_root_x)*(potential_value_root - wp_crit))
+                    *((mod_root_x*mod_root_z)/(2*mod_root_z + mod_root_x))); // MPa
+
+    // Change in root volume
+    double dV_root = root_volume*(((2*mod_root_z + mod_root_x)/(mod_root_z*mod_root_z))*root_dPP 
+                        + (ext_root_z + 2*ext_root_x)*(potential_value_root - wp_crit)); // m3
+
 
     // Stem water potential update
-    double F_stem_leaf;
-    double F_stem_leaf_temp = (stem_total_potential - leaf_total_potential)/R_stem_leaf;
-    if (F_root_stem - F_stem_leaf < 0.0){
-        F_stem_leaf = 0.0;
-    } else {
-        F_stem_leaf = F_stem_leaf_temp;
-    }
+    double F_stem_leaf = (stem_total_potential - leaf_total_potential)/R_stem_leaf; // g ha hr-1
+    double dW_stem = F_root_stem - F_stem_leaf;
 
-    double stem_water_content_new = stem_water_content + F_root_stem - F_stem_leaf;
+    // Change in pressure potential accounts for both elastic and plastic organ growth
+    double potential_value_stem = std::max(stem_pressure_potential, wp_crit); // MPa
+    double stem_dPP = ((dW_stem/(pw*stem_volume) - (ext_stem_z + 2*ext_stem_x)*(potential_value_stem - wp_crit))
+                    *((mod_stem_x*mod_stem_z)/(2*mod_stem_z + mod_stem_x))); // MPa
 
-    // make sure organ water content does not go below 0 if uptake < flow to stem
-    // double stem_water_content_new;
-    // if (stem_water_content_temp < 0) {
-    //     stem_water_content_new = 0;
-    // } else {
-    //     stem_water_content_new = stem_water_content_temp;
-    // }
+    // Change in stem volume
+    double dV_stem = stem_volume*(((2*mod_stem_z + mod_stem_x)/(mod_stem_z*mod_stem_z))*stem_dPP 
+                        + (ext_stem_z + 2*ext_stem_x)*(potential_value_stem - wp_crit)); // m3
 
-    double dW_stem = stem_water_content_new - stem_water_content;
 
-    double dV_stem = dW_stem/pw;
-    double stem_volume_new = stem_water_content_new/pw;
+    // Leaf Water Potential Update
+    double dW_leaf = F_stem_leaf - transpiration;
 
-    if(stem_pressure_potential > wp_crit) {
-        double stem_dPP = ((dW_stem/(pw*stem_volume_new) - (ext_stem_z + 2*ext_stem_x)*(stem_pressure_potential - wp_crit))
-                    *((mod_stem_x*mod_stem_z)/(2*mod_stem_z + mod_stem_x)));
-    } else {
-        double stem_dPP = ((dW_stem/(pw*stem_volume_new))
-                    *((mod_stem_x*mod_stem_z)/(2*mod_stem_z + mod_stem_x)));
-    }
-
-    // Leaf water potential update
-    double F_transpiration;
-    // double F_stem_leaf_temp = (stem_total_potential - leaf_total_potential)/R_stem_leaf;
-    if (F_stem_leaf - transpiration < 0.0){
-        F_transpiration = 0.0;
-    } else {
-        F_transpiration = transpiration;
-    }
-
-    double leaf_water_content_new = leaf_water_content + F_stem_leaf - F_transpiration;
-
-    // make sure organ water content does not go below 0 if uptake < flow to stem
-    // double leaf_water_content_new;
-    // if (leaf_water_content_temp < 0) {
-    //     leaf_water_content_new = 0;
-    // } else {
-    //     leaf_water_content_new = leaf_water_content_temp;
-    // }
-
-    double dW_leaf = leaf_water_content_new - leaf_water_content;
-
-    double dV_leaf = dW_leaf/pw;
-    double leaf_volume_new = leaf_water_content_new/pw;
-
-    if (leaf_pressure_potential > wp_crit) {
-        double leaf_dPP = ((dW_leaf/(pw*leaf_volume_new) - (ext_leaf_z + ext_leaf_x + ext_leaf_y)*(leaf_pressure_potential - wp_crit))
+    double potential_value_leaf = std::max(leaf_pressure_potential, wp_crit);
+    double leaf_dPP = ((dW_leaf/(pw*leaf_volume) - (ext_leaf_z + ext_leaf_x + ext_leaf_y)*(potential_value_leaf - wp_crit))
                     *((mod_leaf_x*mod_leaf_z*mod_leaf_y)/(mod_leaf_x*mod_leaf_z + mod_leaf_z*mod_leaf_y + mod_leaf_x*mod_leaf_y)));
-    } else {
-        double leaf_dPP = ((dW_leaf/(pw*leaf_volume_new))
-                    *((mod_leaf_x*mod_leaf_z*mod_leaf_y)/(mod_leaf_x*mod_leaf_z + mod_leaf_z*mod_leaf_y + mod_leaf_x*mod_leaf_y)));
-    }
 
+    // Change in stem volume
+    double dV_leaf = leaf_volume*(((mod_leaf_x*mod_leaf_z + mod_leaf_z*mod_leaf_y + mod_leaf_x*mod_leaf_y)/(mod_leaf_x*mod_leaf_z*mod_leaf_y))
+                                        *stem_dPP + (ext_leaf_z + ext_leaf_x + ext_leaf_y)*(potential_value_leaf - wp_crit)); // m3
+
+
+                                        
     // Update the output quantity list
     update(root_pressure_potential_op, root_dPP);
     update(stem_pressure_potential_op, stem_dPP);
