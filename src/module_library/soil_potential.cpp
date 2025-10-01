@@ -76,7 +76,15 @@ string_vector soil_potential::get_outputs()
     "soil_potential_4",
     "soil_potential_5",
     "soil_potential_6",
-    "soil_potential_avg"
+    "soil_potential_avg",
+
+    "soil_pressure_potential_1",
+    "soil_pressure_potential_2",
+    "soil_pressure_potential_3",
+    "soil_pressure_potential_4",
+    "soil_pressure_potential_5",
+    "soil_pressure_potential_6",
+    "soil_pressure_potential_avg"
 
   };
 }
@@ -128,7 +136,7 @@ void soil_potential::do_operation() const
     soil_alpha_4,
     soil_alpha_5,
     soil_alpha_6
-  }; // dimensionless
+  }; // cm-1
 
   double soil_residual_wc[] = {
     soil_residual_wc_1,
@@ -156,42 +164,39 @@ void soil_potential::do_operation() const
 
   // calculate pressure head for a given soil layer and convert from cm to MPa
   // 1 m = 0.00979 MPa
-  // 1 m * density of water (998.2 kg/ m3) * gravity (9.81 m/s2) = 98.1 kg/(m*s2) = 98.1 Pa = 0.0000979 MPa
-  double convf = 0.00979; // head (m) to potential (MPa)
+  // 1 cm * density of water (998.2 kg/ m3) * gravity (9.81 m/s2) = 98.1 kg/(m*s2) = 98.1 Pa = 0.0000979 MPa
+  double convf = 0.0000979; // head (m) to potential (MPa)
 
   // calculate cummulative depth at each soil layer
   for(int l = 1; l < max_rooting_layer; l++){
     tot_soil_depth[l] = tot_soil_depth[l-1] + soil_depth[l];
   }
 
+  int saturated_layer_counter;
   double z_wt;
-  int saturated_layer;
   for(int l = 0; l < max_rooting_layer; l++){
     // if (soil_wc[l] < soil_saturated_wc[l]) { // van genuchten (1980) if soil is unsaturated (negative)
-    pressure_potential[l] = convf*(1/soil_alpha[l])*pow(pow((soil_saturated_wc[l] - soil_residual_wc[l])/(soil_wc[l] - soil_residual_wc[l]), (-1/soil_m[l])) - 1, (1/soil_n[l])); // MPa
-    gravitational_potential[l] = -convf*(tot_soil_depth[l] - (soil_depth[l]/2)); // calculated using soil depth in the middle of the layer
+    saturated_layer_counter = 0; // if a layer is not saturated
+    pressure_potential[l] = -convf*(1.0/soil_alpha[l])*pow((pow(((soil_saturated_wc[l] - soil_residual_wc[l])/(soil_wc[l] - soil_residual_wc[l])),
+                                                                 (1.0/soil_m[l])) - 1.0),
+                                                                (1.0/soil_n[l])); // MPa
+    gravitational_potential[l] = convf*(0 - (tot_soil_depth[l] - (soil_depth[l]/2))); // calculated using soil depth in the middle of the layer
     total_potential[l] = pressure_potential[l] + gravitational_potential[l];
     // }
     // else{ // calculated as hydrostatic pressure if saturated (positive)
-
-      // ** currently only running unsaturated portion of the model**
-
-      // z_wt = tot_soil_depth[l-1]; // water table height assumed to be at the top of the soil layer
-      // saturated_layer = l; // keep track of layer where saturation is reached
-      // break; // break loop if saturation is reached
+    //   if (l == 0){
+    //     z_wt = 0.0;
+    //   } else if (saturated_layer_counter == 0) {
+    //     z_wt = tot_soil_depth[l-1]; // setting water table height to be the top of the first saturated soil layer
+    //   }
+    //   saturated_layer_counter += 1;
+    //   gravitational_potential[l] = convf*(0 - (tot_soil_depth[l] - (soil_depth[l]/2)));
+    //   pressure_potential[l] = -998.2*9.81*pow(10, -6)*(z_wt - (tot_soil_depth[l] - (soil_depth[l]/2)));
+    //   total_potential[l] = pressure_potential[l] + gravitational_potential[l];
+    //   break; // break loop if saturation is reached
     // }
     
   }
-
-  // double z_center_layer;
-  // double z;
-  // for(int l = saturated_layer; l < max_rooting_layer; l++){
-  //   z_center_layer = tot_soil_depth[l] - (soil_depth[l]/2);
-  //   z = z_wt - z_center_layer // hydrostatic pressure depth = depth of water table - depth at layer center 
-  //   pressure_potential[l] = -998.2*9.81*z*pow(10, -6) //MPa, positive because saturated
-  //   gravitational_potential[l] = -0.0000979*(tot_soil_depth[l] - (soil_depth[l]/2));
-  //   total_potential[l] = pressure_potential[l] + gravitational_potential[l];
-  // }
 
   // calculate average matric potential value for entire root zone
   double num;
@@ -203,6 +208,17 @@ void soil_potential::do_operation() const
 
   double volumetric_avg = num/denom;
 
+  // repeating for pressure potential
+  double num_p;
+  double denom_p;
+  for(int l = 0; l < max_rooting_layer; l++){
+    num_p += soil_wc[l]*soil_depth[l]*total_potential[l];
+    denom_p += soil_wc[l]*soil_depth[l];
+  }
+
+  double volumetric_pressure_avg = num_p/denom_p;
+  
+
   // update soil potential
   update(soil_potential_1_op, total_potential[1]);
   update(soil_potential_2_op, total_potential[2]);
@@ -211,4 +227,12 @@ void soil_potential::do_operation() const
   update(soil_potential_5_op, total_potential[5]);
   update(soil_potential_6_op, total_potential[6]);
   update(soil_potential_avg_op, volumetric_avg);
+
+  update(soil_pressure_potential_1_op, pressure_potential[1]);
+  update(soil_pressure_potential_2_op, pressure_potential[2]);
+  update(soil_pressure_potential_3_op, pressure_potential[3]);
+  update(soil_pressure_potential_4_op, pressure_potential[4]);
+  update(soil_pressure_potential_5_op, pressure_potential[5]);
+  update(soil_pressure_potential_6_op, pressure_potential[6]);
+  update(soil_pressure_potential_avg_op, volumetric_pressure_avg);
 }

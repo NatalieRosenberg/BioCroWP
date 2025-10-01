@@ -116,7 +116,14 @@ for (R in R_values) {
     parameters,
     weatherData,
     direct_modules,
-    differential_modules
+    differential_modules,
+    ode_solver=list(
+      type = 'boost_rosenbrock',
+      output_step_size = 1.0,
+      adaptive_rel_error_tol = 1e-4,
+      adaptive_abs_error_tol = 1e-4,
+      adaptive_max_steps = 200
+    )
   )
   
   # Plotting results
@@ -197,3 +204,30 @@ print(transpiration_1*1000000)
 
 result$root_total_potential[[1]]
 result$root_osmotic_potential[[1]]
+
+# plotting soil water potential
+result$soil_potential_avg
+result$soil_potential_1
+result$soil_potential_2
+result$soil_potential_3
+result$soil_potential_4
+result$soil_potential_5
+result$soil_potential_6
+
+plot(result$soil_water_content_1, result$soil_pressure_potential_1)
+plot(result$doy, result$soil_potential_2)
+points(result$doy, 20*result$soil_water_content_2, col='blue')
+max(result$soil_water_content_1)
+max(result$soil_saturated_wc_1)
+
+result$soil_water_content[505]
+
+wc_df <- data.frame(
+  wc = result$soil_water_content_1,
+  swp = result$soil_pressure_potential_1
+)
+wc_df
+write.csv(wc_df, "C:\\Users\\natal\\OneDrive\\documents\\masters\\research\\literature\\wc.csv")
+result$soil_water_content_1
+result$soil_pressure_potential_1
+result$soil_residual_wc_1
