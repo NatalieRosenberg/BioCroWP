@@ -108,6 +108,10 @@ parameters =   within(soybean$parameters, {
 })
 parameters[c('soil_field_capacity','soil_saturated_conductivity','soil_saturation_capacity','soil_wilting_point')]=NULL
 parameters[c('kShell','net_assimilation_rate_shell')] = NULL
+
+outputs <- evaluate_module(
+  withinsoybean$parameters, {
+)
   
 result <- run_biocro(
   init_values,

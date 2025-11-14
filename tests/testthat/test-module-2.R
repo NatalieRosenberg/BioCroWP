@@ -2,6 +2,9 @@ library(BioCro)
 library(BioCroWP)
 library(BioCroWater)
 
+# Using weather file with daily max/min air temps to validate soil temp module
+load("C:/Users/natal/OneDrive/Documents/masters/research/data/soybean_weather_wp.rdata")
+#weatherData <- merged_soybean_weather$'2002'
 weatherData <- soybean_weather$'2002'
 
 # listing direct modules
@@ -59,8 +62,74 @@ init_values =   within(soybean$initial_values,{
 })
 init_values$soil_water_content=NULL
 
+soiltype = 3 
+parameters =   within(soybean$parameters, {
+  irrigation = 0.0
+  swcon = 0.05/24
+  curve_number = 61
+  soil_type_indicator_1 = soiltype
+  soil_type_indicator_2 = soiltype
+  soil_type_indicator_3 = soiltype
+  soil_type_indicator_4 = soiltype
+  soil_type_indicator_5 = soiltype
+  soil_type_indicator_6 = soiltype
+  soil_depth_1 = 5
+  soil_depth_2 = 10
+  soil_depth_3 = 20
+  soil_depth_4 = 20
+  soil_depth_5 = 20
+  soil_depth_6 = 25
+  tile_drainage_rate          = 0.2 # dimensionless, as in DSSAT (1/d ?)
+  tile_drain_depth            = 90  # cm (typical value 3-4 ft)
+  skc    = 0.3
+  kcbmax = 0.25
+  elevation                   = 219
+  bare_soil_albedo            = 0.15
+  max_rooting_layer = 4
+  ext_root_x = 0.055
+  ext_root_z = 0.275
+  ext_stem_x = 0.055
+  ext_stem_z = 0.275
+  ext_leaf_x = 0.0
+  ext_leaf_y = 0.55
+  ext_leaf_z = 0.55
+  mod_root_x = 57
+  mod_root_z = 57
+  mod_stem_x = 57
+  mod_stem_z = 57
+  mod_leaf_x = 9
+  mod_leaf_y = 2
+  mod_leaf_z = 9
+  wp_crit = 0.4
+  storage_water_frac = 0.8
+  R_root_stem = 1
+  R_stem_leaf = 1
+  minimum_temp_day = 29.8
+  maximum_temp_day = 32.3
+})
+parameters[c('soil_field_capacity','soil_saturated_conductivity','soil_saturation_capacity','soil_wilting_point')]=NULL
+parameters[c('kShell','net_assimilation_rate_shell')] = NULL
+
+result <- run_biocro(
+  init_values,
+  parameters,
+  weatherData,
+  direct_modules,
+  differential_modules,
+  ode_solver=list(
+    type = 'boost_rosenbrock',
+    output_step_size = 1.0,
+    adaptive_rel_error_tol = 1e-4,
+    adaptive_abs_error_tol = 1e-4,
+    adaptive_max_steps = 200
+  )
+)
+
+##################################################################################################################################
+
 setwd('C:/Users/natal/OneDrive/Documents/masters/research/literature/plant_water_transport/coussement/results/plots/')
 
+# Loop to test different R values
 R_values = list(0.001, 0.005, 0.01, 0.05, 0.1, 0.5, 1, 2, 3, 5, 10, 100, 1000)
 for (R in R_values) {
   soiltype = 3 
@@ -105,8 +174,8 @@ for (R in R_values) {
     storage_water_frac = 0.8
     R_root_stem = R
     R_stem_leaf = R
-    minimum_temp_day = 20.9
-    maximum_temp_day = 32.3
+    #minimum_temp_day = 20.9
+    #maximum_temp_day = 32.3
   })
   parameters[c('soil_field_capacity','soil_saturated_conductivity','soil_saturation_capacity','soil_wilting_point')]=NULL
   parameters[c('kShell','net_assimilation_rate_shell')] = NULL
@@ -126,7 +195,7 @@ for (R in R_values) {
     )
   )
   
-  # Plotting results
+  # Plotting plant potential results
   time_daily = result$time/24
   
   plots <- list(
@@ -147,6 +216,7 @@ for (R in R_values) {
     list(base="leaf_tp",   y=result$leaf_total_potential,      ylab="Leaf Total Potential (MPa)")
   )
   
+  # Saving plant potential plots
   R_str <- sprintf("%.3f", R)  # keeps three decimal places
   
   for (p in plots) {
@@ -162,7 +232,9 @@ for (R in R_values) {
   
   }
 }
-  
+
+##################################################################################################################################
+# Plotting dry biomass for comparison with water content  
 plots_2 <- list(
   list(base="precip",    y=weatherData$precip,    ylab="Precipitation"),
   list(base="root_dry_biomass", y=result$Root, ylab="Root Dry Biomass"),
@@ -170,6 +242,7 @@ plots_2 <- list(
   list(base="leaf_dry_biomass", y=result$Leaf, ylab="Leaf Dry Biomass")
 )
 
+# Saving dry biomass plots
 for (p2 in plots_2) {
   filename <- paste0(p2$base, ".jpeg")
   jpeg(filename, width = 800, height = 600)
@@ -179,31 +252,20 @@ for (p2 in plots_2) {
   dev.off()
 }
 
-plot(time_daily[20:120], result$soil_temperature_avg[20:120], xlab="DOY", ylab="soil temperature (K)")
+##################################################################################################################################
 
+# Soil Temperature Plot
+plot(result$time, result$soil_temperature_avg, xlab="DOY", ylab="soil temperature (K)")
 
-transpiration_abr = result$canopy_transpiration_rate[seq(11, length(result$canopy_transpiration_rate), by =24)]
-time_abr = time_daily[seq(11, length(result$time), by = 24)]
-plot(result$time, result$canopy_transpiration_rate, xlab='time', ylab='Canopy Transpiration Rate (Mg ha-1 hr-1)')
-plot(time_abr, transpiration_abr, xlab='time', ylab='Canopy Transpiration Rate (Mg ha-1 hr-1)')
+# Saving Soil Temp Data to CSV
+soil_temp_df <- data.frame(
+  time = result$time,
+  soil_temp_L1 = result$soil_temperature
+)
+wc_df
+write.csv(wc_df, "C:\\Users\\natal\\OneDrive\\documents\\masters\\research\\literature\\wc.csv")
 
-soil_temp_abr = result$soil_temperature_avg[seq(11, length(result$soil_temperature_avg), by =24)]
-plot(time_abr, result$soil_temperature_avg, xlab='DOY', ylab = 'Soil Temperature (K)')
-
-# plotting total water uptake
-total_uptake = 0
-for (layer in 1:parameters$max_rooting_layer) {
-  total_uptake = total_uptake + result[[paste0("uptake_layer_", layer)]]
-}
-plot(time_daily, total_uptake, xlab='time', ylab='total RWU (Mg ha-1 hr-1)')
-uptake_1 <- total_uptake[[1]]
-print(uptake_1*1000000)
-
-transpiration_1 <- result$canopy_transpiration_rate[[1]]
-print(transpiration_1*1000000)
-
-result$root_total_potential[[1]]
-result$root_osmotic_potential[[1]]
+##################################################################################################################################
 
 # plotting soil water potential
 result$soil_potential_avg
@@ -220,8 +282,7 @@ points(result$doy, 20*result$soil_water_content_2, col='blue')
 max(result$soil_water_content_1)
 max(result$soil_saturated_wc_1)
 
-result$soil_water_content[505]
-
+# Saving soil water content results
 wc_df <- data.frame(
   wc = result$soil_water_content_1,
   swp = result$soil_pressure_potential_1
@@ -231,3 +292,4 @@ write.csv(wc_df, "C:\\Users\\natal\\OneDrive\\documents\\masters\\research\\lite
 result$soil_water_content_1
 result$soil_pressure_potential_1
 result$soil_residual_wc_1
+##################################################################################################################################

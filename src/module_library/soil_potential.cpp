@@ -220,19 +220,19 @@ void soil_potential::do_operation() const
   
 
   // update soil potential
-  update(soil_potential_1_op, total_potential[1]);
-  update(soil_potential_2_op, total_potential[2]);
-  update(soil_potential_3_op, total_potential[3]);
-  update(soil_potential_4_op, total_potential[4]);
-  update(soil_potential_5_op, total_potential[5]);
-  update(soil_potential_6_op, total_potential[6]);
+  update(soil_potential_1_op, total_potential[0]);
+  update(soil_potential_2_op, total_potential[1]);
+  update(soil_potential_3_op, total_potential[2]);
+  update(soil_potential_4_op, total_potential[3]);
+  update(soil_potential_5_op, total_potential[4]);
+  update(soil_potential_6_op, total_potential[5]);
   update(soil_potential_avg_op, volumetric_avg);
 
-  update(soil_pressure_potential_1_op, pressure_potential[1]);
-  update(soil_pressure_potential_2_op, pressure_potential[2]);
-  update(soil_pressure_potential_3_op, pressure_potential[3]);
-  update(soil_pressure_potential_4_op, pressure_potential[4]);
-  update(soil_pressure_potential_5_op, pressure_potential[5]);
-  update(soil_pressure_potential_6_op, pressure_potential[6]);
+  update(soil_pressure_potential_1_op, pressure_potential[0]);
+  update(soil_pressure_potential_2_op, pressure_potential[1]);
+  update(soil_pressure_potential_3_op, pressure_potential[2]);
+  update(soil_pressure_potential_4_op, pressure_potential[3]);
+  update(soil_pressure_potential_5_op, pressure_potential[4]);
+  update(soil_pressure_potential_6_op, pressure_potential[5]);
   update(soil_pressure_potential_avg_op, volumetric_pressure_avg);
 }

@@ -128,7 +128,7 @@ void soil_temperature::do_operation() const
         s_r_arr.push_back(swc_arr[l]/soil_sat_capacity_arr[l]); // dimensionless
     }
 
-    // fudged by 0.5 degrees celcius because air temp is used instead of soil surface temp (Moore et al. (2020))
+    // fudge by 0.5 degrees celcius is recommended because air temp is used instead of soil surface temp (Moore et al. (2020))
     double min_K = minimum_temp_day + 273.15 + 0.5; // K
     double max_K = maximum_temp_day + 273.15 + 0.5;
 
@@ -227,11 +227,11 @@ void soil_temperature::do_operation() const
     }
     double temp_avg = temp_tot/tot_soil_depth; // K
 
-    // update(soil_temperature_1_op, soil_temperature_arr[1]);
-    // update(soil_temperature_2_op, soil_temperature_arr[2]);
-    // update(soil_temperature_3_op, soil_temperature_arr[3]);
-    // update(soil_temperature_4_op, soil_temperature_arr[4]);
-    // update(soil_temperature_5_op, soil_temperature_arr[5]);
-    // update(soil_temperature_6_op, soil_temperature_arr[6]);
+    update(soil_temperature_1_op, soil_temperature_arr[0]);
+    update(soil_temperature_2_op, soil_temperature_arr[1]);
+    update(soil_temperature_3_op, soil_temperature_arr[2]);
+    update(soil_temperature_4_op, soil_temperature_arr[3]);
+    update(soil_temperature_5_op, soil_temperature_arr[4]);
+    update(soil_temperature_6_op, soil_temperature_arr[5]);
     update(soil_temperature_avg_op, temp_avg);
 }
